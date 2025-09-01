@@ -1,0 +1,1 @@
+export { FlightSeats } from "./FlightSeats";
