@@ -1,34 +1,42 @@
-import { useState, type ChangeEvent } from 'react';
-import { useDispatch } from 'react-redux';
-import { Box, Container, TextField, Alert, Stack } from '@mui/material';
-
-import { setSearchQuery } from '@/features/flightSlice';
+import { useState, type ChangeEvent, useEffect } from 'react';
+import { Box, Container, TextField, Stack } from '@mui/material';
 import { Button } from '@/shared/ui/Button';
+import { ErrorMess } from '@/shared/ui/ErrorMess/ErrorMess';
+import { GoToFlights } from '@/features/ui/GoToFlights/GoToFlights';
 
-export const FlightFilter = () => {
-  const [addQuery, setAddQuery] = useState<string>('');
+interface FlightFilterProps {
+  initialValue?: string; 
+  onSearch: (query: string) => void; 
+}
+
+export const FlightFilter = ({
+  initialValue = '',
+  onSearch,
+}: FlightFilterProps) => {
+  const [addQuery, setAddQuery] = useState<string>(initialValue);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const dispatch = useDispatch();
+  useEffect(() => {
+    setAddQuery(initialValue);
+  }, [initialValue]);
 
   const searchOnChange = (e: ChangeEvent<HTMLInputElement>) => {
     setAddQuery(e.target.value);
   };
 
-  const handleSearchTodo = () => {
+  const handleSearch = () => {
     if (!addQuery.trim()) {
       setErrorMessage('Search query cannot be empty');
       return;
     }
-
     setErrorMessage(null);
-    dispatch(setSearchQuery(addQuery.trim()));
+    onSearch(addQuery.trim());
   };
 
   const handleClear = () => {
     setAddQuery('');
     setErrorMessage(null);
-    dispatch(setSearchQuery('')); 
+    onSearch(''); 
   };
 
   return (
@@ -51,10 +59,8 @@ export const FlightFilter = () => {
           />
           <Button
             variant='contained'
-            onClick={handleSearchTodo}
-            sx={{
-              minWidth: { xs: '100%', sm: 120 },
-            }}
+            onClick={handleSearch}
+            sx={{ minWidth: { xs: '100%', sm: 120 } }}
           >
             Search
           </Button>
@@ -68,12 +74,10 @@ export const FlightFilter = () => {
           </Button>
         </Stack>
       </Container>
-
       {errorMessage && (
-        <Alert severity='error' sx={{ marginTop: 2 }}>
-          {errorMessage}
-        </Alert>
+        <ErrorMess message={errorMessage} action={<GoToFlights />} />
       )}
     </Box>
   );
 };
+

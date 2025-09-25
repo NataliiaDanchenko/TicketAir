@@ -27,7 +27,9 @@ import { formatTime } from '@/entities/utils/formatTime';
 import { formatDate } from '@/entities/utils/formatDate';
 import { getDuration } from '@/entities/utils/getDuration';
 
+import { GoToFlights } from '@/features/ui/GoToFlights/GoToFlights';
 import { Button } from '@/shared/ui/Button';
+import { ErrorMess } from '@/shared/ui/ErrorMess';
 
 type FlightCardProps = {
   flight: IFlight;
@@ -49,14 +51,13 @@ export const FlightCard = ({ flight }: FlightCardProps) => {
   } = flight;
 
   const duration = getDuration(departureTime, arrivalTime);
-  const occupancy =
-    tickets.total > 0 ? (tickets.remaining / tickets.total) * 100 : 0;
-
+  const occupancy = tickets.total > 0 ? (tickets.remaining / tickets.total) * 100 : 0;
+  
   const handleClick = () => {
     if (flight?.id) {
       navigate(`/flights/${flight.id}`);
     } else {
-      console.warn('flight.id не знайдено');
+      <ErrorMess message='flight.id не знайдено' action={<GoToFlights/>}/>;
     }
     navigate(`/flights/${flight.id}`);
   };

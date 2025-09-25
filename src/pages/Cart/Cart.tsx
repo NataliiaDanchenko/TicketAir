@@ -1,5 +1,5 @@
-import { FlightCart } from "@/widgets/ui/FlightCart";
 import { Box, Container, Typography } from "@mui/material";
+import { FlightCart } from '@/widgets/ui/FlightCart';
 
 export const Cart = () => {
   return (

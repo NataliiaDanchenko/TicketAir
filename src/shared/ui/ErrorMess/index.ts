@@ -1,0 +1,1 @@
+export { ErrorMess } from './ErrorMess.tsx';

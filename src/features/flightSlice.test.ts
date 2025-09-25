@@ -1,8 +1,8 @@
-import { flightReducer, addItem, setSort } from "./flightSlice";
+import { flightReducer, addItem, removeItem, clearItem } from "./flightSlice";
 import type { IFlight } from "@/entities/types/flight";
 
 describe("flightSlice reducers", () => {
-  it("addItem додє рейс до кошику", () => {
+  it("addItem додає рейс до кошику", () => {
     const initialState = flightReducer(undefined, { type: "" });
 
     const flight: IFlight = { id: "f1", airline: "TestAir", price: 200 } as IFlight;
@@ -15,12 +15,25 @@ describe("flightSlice reducers", () => {
     expect(state.cartItems[0].seatsId).toEqual(["1A", "1B"]);
   });
 
-  it("setSort сортує рейси", () => {
-    const initialState = flightReducer(undefined, { type: "" });
+  it("removeItem видаляє рейс із кошику", () => {
+    const flight: IFlight = { id: "f1", airline: "TestAir", price: 200 } as IFlight;
+    const seatsId = ["1A", "1B"];
 
-    const state = flightReducer(initialState, setSort({ sortBy: "airline", sortOrder: "asc" }));
+    const stateWithItem = flightReducer(undefined, addItem({ flight, seatsId }));
 
-    expect(state.sortBy).toBe("airline");
-    expect(state.sortOrder).toBe("asc");
+    const stateAfterRemove = flightReducer(stateWithItem, removeItem({ flightId: "f1", seatsId }));
+
+    expect(stateAfterRemove.cartItems).toHaveLength(0);
+  });
+
+  it("clearItem очищає кошик", () => {
+    const flight: IFlight = { id: "f1", airline: "TestAir", price: 200 } as IFlight;
+    const seatsId = ["1A", "1B"];
+
+    const stateWithItem = flightReducer(undefined, addItem({ flight, seatsId }));
+
+    const clearedState = flightReducer(stateWithItem, clearItem());
+
+    expect(clearedState.cartItems).toHaveLength(0);
   });
 });

@@ -1,12 +1,12 @@
-import { AppRouter } from './app/route/AppRouter/AppRouter';
+import { ThemeProvider } from './app/providers/themeProvider/ui/ThemeProvider';
+import { AppRouter } from './app/providers/route/AppRouter/AppRouter';
 
 function App() {
-
   return (
-    <>
-      <AppRouter/>
-    </>
+    <ThemeProvider>
+      <AppRouter />
+    </ThemeProvider>
   );
 }
 
-export default App
+export default App;

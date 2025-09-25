@@ -2,7 +2,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { Box, Stack, Typography } from '@mui/material';
 
-import type { RootState } from '@/app/store/createReduxStore';
+import type { RootState } from '@/app/providers/store/createReduxStore';
 import { clearItem } from '@/features/flightSlice';
 
 import { Button } from '@/shared/ui/Button';

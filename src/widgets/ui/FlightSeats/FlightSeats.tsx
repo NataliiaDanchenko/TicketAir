@@ -15,6 +15,8 @@ import { generateSeats } from '@/widgets/utils/generateSeats';
 
 import { Button } from '@/shared/ui/Button';
 import { SeatButton } from './SeatButton';
+import { ErrorMess } from '@/shared/ui/ErrorMess';
+import { GoToFlights } from '@/features/ui/GoToFlights/GoToFlights';
 
 export const FlightSeats = () => {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +29,8 @@ export const FlightSeats = () => {
     const saved = id ? localStorage.getItem(`selectedSeats_${id}`) : null;
     return saved ? JSON.parse(saved) : [];
   });
+
+  const [error, setError] = useState<string | null>(null);
 
   // Зберігаємо обрані місця в localStorage при кожній зміні
   useEffect(() => {
@@ -81,13 +85,18 @@ export const FlightSeats = () => {
         ? prev.filter((id) => id !== seatId)
         : [...prev, seatId],
     );
+      setError(null);
   }, []);
 
   const goToCart = useCallback(() => {
-    if (data) {
-      dispatch(addItem({ flight: data, seatsId: selectedSeats }));
-      navigate('/cart');
+    if (!data) return;
+
+    if (selectedSeats.length === 0) {
+      setError('Оберіть місце');
+      return;
     }
+    dispatch(addItem({ flight: data, seatsId: selectedSeats }));
+    navigate('/cart');
   }, [data, selectedSeats, dispatch, navigate]);
 
   if (isLoading) {
@@ -150,15 +159,19 @@ export const FlightSeats = () => {
         ))}
       </Grid>
 
+      {error ? (
+        <ErrorMess message='Оберіть місце' action={<GoToFlights />} />
+      ) : (
+        <Button onClick={goToCart} variant='outlined' sx={{ mt: 2 }}>
+          Додати до корзини
+        </Button>
+      )}
+
       {selectedSeats.length > 0 && (
         <Typography sx={{ mt: 2 }}>
           Обрані місця: {selectedSeats.join(', ')}
         </Typography>
       )}
-
-      <Button onClick={goToCart} variant='outlined' sx={{ mt: 2 }}>
-        Додати до корзини
-      </Button>
     </Box>
   );
 };

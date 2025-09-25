@@ -1,70 +1,79 @@
-import { useEffect, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Container, Typography, CircularProgress, Grid, Box } from '@mui/material';
+import { Container, CircularProgress, Grid, Box } from '@mui/material';
 
-import type { RootState } from '@/app/store/createReduxStore';
 import { useGetFlightsQuery } from '@/entities/model/services/flightApi';
-import { setPagination, setSort, setSearchQuery, initialState } from '@/features/flightSlice';
-
 import type { IFlight } from '@/entities/types/flight';
-import type { SortField } from '@/features/flightSlice';
 
 import { FlightCard } from '@/entities/ui/FlightCard';
 import { FlightSort } from '@/entities/ui/FlightSort';
 import { FlightPagination } from '@/entities/ui/FlightPagination';
 import { FlightFilter } from '@/entities/ui/FlightFilter';
+import { GoToFlights } from '@/features/ui/GoToFlights/GoToFlights';
+import { ErrorMess } from '@/shared/ui/ErrorMess';
+
+export type SortField = 'price' | 'airline';
+const totalItemsFallback = 35;
 
 export const FlightList = () => {
-  const dispatch = useDispatch();
-  const { sortBy, sortOrder, pagination, searchQuery } = useSelector(
-    (state: RootState) => state.flight,
-  );
-
   const [searchParams, setSearchParams] = useSearchParams();
 
-  useEffect(() => { // ініціалізуємо параметри сторінки з url
-    const page = Number(searchParams.get('page') || pagination.page);
-    const sortParam = searchParams.get('sortBy') || sortBy;
-    const orderParam = (searchParams.get('sortOrder') as 'asc' | 'desc');
-    const airline = searchParams.get('airline') || searchQuery;
+  const page = Number(searchParams.get('page') || 1);
+  const limit = Number(searchParams.get('limit') || 6);
+  const sortBy = (searchParams.get('sortBy') || 'price') as SortField;
+  const sortOrder = (searchParams.get('sortOrder') as 'asc' | 'desc') || 'asc';
+  const searchQuery = searchParams.get('query') || '';
 
-    const validSortBy: SortField = ['price', 'airline'].includes(sortParam)
-      ? (sortParam as SortField)
-      : sortBy;
-
-    dispatch(setPagination({ page, limit: pagination.limit })); // оновлюємо redux
-    dispatch(setSort({ sortBy: validSortBy, sortOrder: orderParam }));
-    dispatch(setSearchQuery(airline));
-  }, [
-    searchParams,
-    pagination.limit,
-    dispatch,
-  ]);
-
-  useEffect(() => { // синхронизація з url оновленого redux
-    const params: Record<string, string> = {};
-    if (searchQuery) params.airline = searchQuery;
-    params.sortBy = sortBy;
-    params.sortOrder = sortOrder || 'asc';
-    params.page = String(pagination.page);
-
-    setSearchParams(params);
-  }, [searchQuery, sortBy, sortOrder, pagination.page, setSearchParams]);
-
-
-  // Створюємо параметри запиту для RTK Query
   const queryParams = useMemo(
     () => ({
-      airline: searchQuery,
+      airline: '',
       sortBy,
-      sortOrder: sortOrder || 'asc',
-      pagination,
+      sortOrder,
     }),
-    [searchQuery, sortBy, sortOrder, pagination],
+    [sortBy, sortOrder, page, limit],
   );
 
   const { data, isLoading, isError } = useGetFlightsQuery(queryParams);
+  const flights = data ?? [];
+
+  const filteredFlights = searchQuery
+    ? flights.filter(
+        (f) =>
+          f.airline.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          f.from.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          f.to.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+    : flights;
+
+  const startIndex = (page - 1) * limit;
+  const paginatedFlights = filteredFlights.slice(
+    startIndex,
+    startIndex + limit,
+  );
+
+  const totalPages = searchQuery
+    ? Math.ceil(filteredFlights.length / limit)
+    : Math.ceil(totalItemsFallback / limit);
+
+  const setPage = (newPage: number) => {
+    searchParams.set('page', String(newPage));
+    setSearchParams(searchParams);
+  };
+
+  const setSort = (newSortBy: SortField, newSortOrder: 'asc' | 'desc') => {
+    searchParams.set('sortBy', newSortBy);
+    searchParams.set('sortOrder', newSortOrder);
+    setSearchParams(searchParams);
+  };
+
+  const setSearch = (query: string) => {
+    const params = new URLSearchParams();
+    if (query) {
+      params.set('query', query);
+    }
+    params.set('page', '1'); 
+    setSearchParams(params);
+  };
 
   if (isLoading) {
     return (
@@ -77,47 +86,43 @@ export const FlightList = () => {
   if (isError) {
     return (
       <Container sx={{ py: 4 }}>
-        <Typography color='error'>Помилка завантаження рейсів</Typography>
+        <ErrorMess
+          message='Помилка завантаження рейсів'
+          action={<GoToFlights />}
+        />
       </Container>
     );
   }
 
-  const flights = data ?? [];
-
-  const handlePrev = () => {
-    if (pagination.page > 1) {
-      dispatch(setPagination({ page: pagination.page - 1 }));
-    }
-  };
-
-  const handleNext = () => {
-    if (flights.length > 0) {
-      dispatch(setPagination({ page: pagination.page + 1 }));
-    }
-  };
-
   return (
     <Container sx={{ py: 4 }}>
       <Box sx={{ mb: 4 }}>
-        <FlightFilter />
+        <FlightFilter initialValue={searchQuery} onSearch={setSearch} />
       </Box>
 
       <Grid container spacing={2}>
-        {flights?.map((flight: IFlight) => (
+        {paginatedFlights.map((flight: IFlight) => (
           <Grid item xs={12} sm={6} md={4} key={flight.id}>
             <FlightCard flight={flight} />
           </Grid>
         ))}
       </Grid>
-      <FlightSort />
+
+      <Box sx={{ my: 2 }}>
+        <FlightSort
+          currentSortBy={sortBy}
+          currentSortOrder={sortOrder}
+          onSortChange={setSort}
+        />
+      </Box>
+
       <FlightPagination
-        sizePage={initialState.pagination.limit}
-        currentPage={pagination.page}
-        currentPageItemsCount={flights.length}
-        onPrev={handlePrev}
-        onNext={handleNext}
-        onPageChange={(page: number) => dispatch(setPagination({ page }))}
+        sizePage={limit}
+        currentPage={page}
+        onPageChange={setPage}
+        totalPages={totalPages}
       />
     </Container>
   );
 };
+
